@@ -19,17 +19,42 @@ app.use(session({
 
 fccTesting(app); //For FCC testing purposes
 app.use('/public', express.static(process.cwd() + '/public'));
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
+const ObjectID = mongodb.ObjectID;
+const mongo = mongodb.MongoClient;
+
+mongo.connect(process.env.DATABASE,(err, db)=>{
+  if (err){
+    console.log('Database error: '+ err);
+  } else {
+    console.log('Successful connected to the database');
+
+    passport.serializeUser((user, done)=>{
+      done(null, user._id);
+    });
+
+    passport.deserializeUser((id,done)=>{
+      db.collection('users').findOne({_id : new ObjectID(id)},(err,doc)={
+        done(doc);
+      });
+    });
+
+    app.listen(process.env.PORT || 3000, () => {
+      console.log("Listening on port " + process.env.PORT);
+    });
+
+  }
+
+});
+
 app.route('/')
   .get((req, res) => {
     res.render(process.cwd() + '/views/pug/index.pug');
   });
 
-app.listen(process.env.PORT || 3000, () => {
-  console.log("Listening on port " + process.env.PORT);
-});
